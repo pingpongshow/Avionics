@@ -1,0 +1,78 @@
+{
+  "packageId": "sample-sectional-raster-aeronautical-chart-tif-edition",
+  "title": "sample sectional raster aeronautical chart.tif Edition",
+  "sourceKey": "faa_vfr",
+  "sourceName": "FAA VFR",
+  "packageType": "lcc_affine_tiles",
+  "cycle": "December 27, 2001",
+  "bounds": {
+    "westLon": -126.572664,
+    "eastLon": -120.937963,
+    "northLat": 49.10796,
+    "southLat": 46.607741
+  },
+  "projection": {
+    "type": "lambert_conformal_conic",
+    "stdParallel1": 41.333333,
+    "stdParallel2": 46.666667,
+    "lon0": -121.0,
+    "lat0": 44.5,
+    "falseEasting": 0.0,
+    "falseNorthing": 0.0
+  },
+  "worldFile": {
+    "a": 63.607527540326075,
+    "d": 0.0,
+    "b": 0.0,
+    "e": -63.607527540326075,
+    "c": -408683.28826860944,
+    "f": 512426.66658448783
+  },
+  "levels": [
+    {
+      "id": "l0",
+      "path": "tiles/l0",
+      "format": "jpg",
+      "scale": 0.157611,
+      "width": 1024,
+      "height": 657,
+      "tileSize": 512,
+      "rows": 2,
+      "cols": 2,
+      "minColumn": 0,
+      "maxColumn": 1,
+      "minRow": 0,
+      "maxRow": 1
+    },
+    {
+      "id": "l1",
+      "path": "tiles/l1",
+      "format": "jpg",
+      "scale": 0.315222,
+      "width": 2048,
+      "height": 1314,
+      "tileSize": 512,
+      "rows": 3,
+      "cols": 4,
+      "minColumn": 0,
+      "maxColumn": 3,
+      "minRow": 0,
+      "maxRow": 2
+    },
+    {
+      "id": "l2",
+      "path": "tiles/l2",
+      "format": "jpg",
+      "scale": 0.630445,
+      "width": 4096,
+      "height": 2628,
+      "tileSize": 512,
+      "rows": 6,
+      "cols": 8,
+      "minColumn": 0,
+      "maxColumn": 7,
+      "minRow": 0,
+      "maxRow": 5
+    }
+  ]
+}

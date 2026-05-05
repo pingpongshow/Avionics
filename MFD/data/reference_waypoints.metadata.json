@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-05-05T21:48:00Z",
+  "faaCycle": "2026-04-16",
+  "counts": {
+    "total": 91331,
+    "faaAirports": 19445,
+    "faaFixes": 70207,
+    "faaNavaids": 1638,
+    "openAipAirports": 2463,
+    "openAipNavaids": 650,
+    "mergedDuplicates": 3072
+  },
+  "sources": {
+    "faa": {
+      "apt": "https://nfdc.faa.gov/webContent/28DaySub/extra/16_Apr_2026_APT_CSV.zip",
+      "fix": "https://nfdc.faa.gov/webContent/28DaySub/extra/16_Apr_2026_FIX_CSV.zip",
+      "nav": "https://nfdc.faa.gov/webContent/28DaySub/extra/16_Apr_2026_NAV_CSV.zip"
+    },
+    "openaip": {
+      "apt": "https://storage.googleapis.com/29f98e10-a489-4c82-ae5e-489dbcd4912f/us_apt.ndgeojson?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=cloud-run-api-application%40openaip-187622.iam.gserviceaccount.com%2F20260505%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260505T010554Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22us_apt.ndgeojson%22&X-Goog-Signature=1440d8638feaaff879347ff47c19f8bbba5f2b70900e8a2c34ad2d4699fa91def47f9d657ccda2320bd7380867ce8d5cb0038d71836503f82ea9594cb8ae0a8ca5876f327401606c2c037dcd6de5cb63892110ab7e57a73d0c7198f8a7c4d28c1f32ad2926819915ae1103724974f87cb8d554e4a7ebb35c739549fcf926f7703dd9ff6d09a3ec27126264bd417f6d73d60586313d672a0f14dba3a7f72aa227f0dde79277d49406bb384def4873a477db6f5ed9b1ee939093aa3e5cb4855b6fb140dc56e39cd075e1f82f22e597b443be50888be09813c158163307d3c7f40e021b2d97131afde41cf2a44edbfa2a81de42143208c6176a85c284357d1a71a1",
+      "nav": "https://storage.googleapis.com/29f98e10-a489-4c82-ae5e-489dbcd4912f/us_nav.ndgeojson?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=cloud-run-api-application%40openaip-187622.iam.gserviceaccount.com%2F20260505%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260505T010543Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22us_nav.ndgeojson%22&X-Goog-Signature=a34c299dbbbb5f8328b0171c2ea3b529bceb567c847fb19c438addd8b000aa192e472ca6bbdfc39f8537a4474bf059094d65e810e1558fd7bb89e4717b658a754d5e31c1298acb5591077b73070a495d25c77e613a464b6aa8e480d5c90ce2629dcc334a283780b62a0db1741a79eb633c0fcae9f7424d0aa34081ecdc67fa12c1b08b91db259d9d70cdbba01c28e88c43dec7f4794b3a5bf2ec41549cb35d86a092a653b9957db17df4fefe7cde0c0990bb6ed8c6c6662d2c6d93e8cfeca94a826f5199696180a31786c95c7fbc7a1f287b2b9c4ace449508c1df2fc6dcb0e4318c51795e9911bcfa362e31b6bd9fc3a56578efeff24fc6aad6e9b9eca0d55c"
+    }
+  }
+}
