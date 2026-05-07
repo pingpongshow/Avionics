@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/eis_core_demo.dir/src/main.cpp.o CMakeFiles/eis_core_demo.dir/src/eis_core.cpp.o -o eis_core_demo

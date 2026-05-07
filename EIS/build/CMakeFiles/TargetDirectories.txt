@@ -1,0 +1,3 @@
+/Users/stephen/Desktop/PFD/EIS/build/CMakeFiles/eis_core_demo.dir
+/Users/stephen/Desktop/PFD/EIS/build/CMakeFiles/edit_cache.dir
+/Users/stephen/Desktop/PFD/EIS/build/CMakeFiles/rebuild_cache.dir

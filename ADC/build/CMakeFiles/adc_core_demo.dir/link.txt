@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/adc_core_demo.dir/src/adc_core.cpp.o CMakeFiles/adc_core_demo.dir/src/main.cpp.o -o adc_core_demo
