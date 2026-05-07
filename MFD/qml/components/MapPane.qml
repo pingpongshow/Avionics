@@ -33,10 +33,24 @@ Rectangle {
     property real lastOverlayLatSpanDeg: 0
     property real lastOverlayLonSpanDeg: 0
     property int selectedFlightPlanIndex: -1
+    property bool userTimerRunning: false
+    property int userTimerElapsedSeconds: 0
+    property int userTimerPresetMinutes: 30
 
     readonly property real chartCenterLatitudeDeg: latitudeDeg + panLatitudeDeg
     readonly property real chartCenterLongitudeDeg: longitudeDeg + panLongitudeDeg
     readonly property bool mapCenteredOnOwnship: Math.abs(panLatitudeDeg) < 0.00001 && Math.abs(panLongitudeDeg) < 0.00001
+
+    function formatDuration(totalSeconds) {
+        const seconds = Math.max(0, Math.floor(totalSeconds))
+        const hours = Math.floor(seconds / 3600)
+        const minutes = Math.floor((seconds % 3600) / 60)
+        const secs = seconds % 60
+        if (hours > 0) {
+            return ("0" + hours).slice(-2) + ":" + ("0" + minutes).slice(-2) + ":" + ("0" + secs).slice(-2)
+        }
+        return ("0" + minutes).slice(-2) + ":" + ("0" + secs).slice(-2)
+    }
 
     function updateChartViewport() {
         if (typeof chartManager === "undefined") {
@@ -200,6 +214,7 @@ Rectangle {
         queueOverlayRefresh(true)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
 
     radius: 14
@@ -216,41 +231,48 @@ Rectangle {
         updateChartViewport()
         queueOverlayRefresh(true)
         routeCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onHeightChanged: {
         updateChartViewport()
         queueOverlayRefresh(true)
         routeCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onLatitudeDegChanged: {
         updateChartViewport()
         queueOverlayRefresh(false)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onLongitudeDegChanged: {
         updateChartViewport()
         queueOverlayRefresh(false)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onPanLatitudeDegChanged: {
         updateChartViewport()
         queueOverlayRefresh(false)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onPanLongitudeDegChanged: {
         updateChartViewport()
         queueOverlayRefresh(false)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onMapZoomFactorChanged: {
         updateChartViewport()
         queueOverlayRefresh(true)
         routeCanvas.requestPaint()
         ownshipCanvas.requestPaint()
+        nexradCanvas.requestPaint()
     }
     onBaseChartSourceChanged: {
         updateChartViewport()
@@ -258,8 +280,14 @@ Rectangle {
         previewCanvas.requestPaint()
         routeCanvas.requestPaint()
     }
-    onWeatherOverlayEnabledChanged: queueOverlayRefresh(true)
-    onWeatherOverlayOpacityChanged: queueOverlayRefresh(false)
+    onWeatherOverlayEnabledChanged: {
+        queueOverlayRefresh(true)
+        nexradCanvas.requestPaint()
+    }
+    onWeatherOverlayOpacityChanged: {
+        queueOverlayRefresh(false)
+        nexradCanvas.requestPaint()
+    }
     onTrafficTargetsChanged: ownshipCanvas.requestPaint()
     onFlightPlanLegsChanged: {
         routeCanvas.requestPaint()
@@ -273,6 +301,26 @@ Rectangle {
         repeat: false
         property bool forceRefresh: false
         onTriggered: root.updateLiveOverlays()
+    }
+
+    Timer {
+        id: userTimerTick
+        interval: 1000
+        repeat: true
+        running: root.userTimerRunning
+        onTriggered: root.userTimerElapsedSeconds += 1
+    }
+
+    Connections {
+        target: typeof weatherDataManager !== "undefined" ? weatherDataManager : null
+
+        function onNexradBlocksChanged() {
+            nexradCanvas.requestPaint()
+        }
+
+        function onOverlayChanged() {
+            nexradCanvas.requestPaint()
+        }
     }
 
     Item {
@@ -502,12 +550,102 @@ Rectangle {
                 && root.mapPanelMode === "map"
                 && typeof weatherDataManager !== "undefined"
                 && weatherDataManager.radarOverlayUrl !== ""
+                && !weatherDataManager.fisbNexradAvailable
             opacity: root.weatherOverlayOpacity
             source: typeof weatherDataManager !== "undefined" ? weatherDataManager.radarOverlayUrl : ""
             fillMode: Image.Stretch
             asynchronous: true
             cache: false
             smooth: true
+        }
+
+        Canvas {
+            id: nexradCanvas
+            anchors.fill: parent
+            visible: root.weatherOverlayEnabled
+                && root.mapPanelMode === "map"
+                && typeof weatherDataManager !== "undefined"
+                && weatherDataManager.nexradBlocks.length > 0
+
+            function fillStyleForIntensity(intensity, alpha) {
+                const palette = [
+                    [13, 43, 140],
+                    [15, 64, 184],
+                    [0, 158, 230],
+                    [0, 199, 117],
+                    [38, 219, 41],
+                    [212, 212, 31],
+                    [250, 150, 20],
+                    [235, 46, 41]
+                ]
+                const index = Math.max(0, Math.min(7, Math.round(intensity)))
+                const color = palette[index]
+                return "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + alpha.toFixed(3) + ")"
+            }
+
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+
+                if (!visible || typeof weatherDataManager === "undefined") {
+                    return
+                }
+
+                const blocks = weatherDataManager.nexradBlocks
+                const alpha = Math.max(0.08, Math.min(0.95, root.weatherOverlayOpacity))
+
+                for (let blockIndex = 0; blockIndex < blocks.length; ++blockIndex) {
+                    const block = blocks[blockIndex]
+                    const intensities = block.intensity || []
+                    if (intensities.length === 0) {
+                        continue
+                    }
+
+                    const latNorth = Number(block.latNorthDeg || 0)
+                    const lonWest = Number(block.lonWestDeg || 0)
+                    const latHeight = Number(block.latHeightDeg || 0)
+                    const lonWidth = Number(block.lonWidthDeg || 0)
+
+                    let uniform = true
+                    const firstIntensity = Number(intensities[0] || 0)
+                    for (let i = 1; i < intensities.length; ++i) {
+                        if (Number(intensities[i]) !== firstIntensity) {
+                            uniform = false
+                            break
+                        }
+                    }
+
+                    if (uniform) {
+                        const topLeft = root.mapPointForCoordinate(latNorth, lonWest)
+                        const bottomRight = root.mapPointForCoordinate(latNorth - latHeight, lonWest + lonWidth)
+                        ctx.fillStyle = fillStyleForIntensity(firstIntensity, alpha)
+                        ctx.fillRect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+                        continue
+                    }
+
+                    const columns = 32
+                    const rows = 4
+                    const cellLon = lonWidth / columns
+                    const cellLat = latHeight / rows
+
+                    for (let row = 0; row < rows; ++row) {
+                        for (let column = 0; column < columns; ++column) {
+                            const intensityIndex = row * columns + column
+                            if (intensityIndex >= intensities.length) {
+                                continue
+                            }
+
+                            const intensity = Number(intensities[intensityIndex])
+                            const cellNorthLat = latNorth - row * cellLat
+                            const cellWestLon = lonWest + column * cellLon
+                            const topLeft = root.mapPointForCoordinate(cellNorthLat, cellWestLon)
+                            const bottomRight = root.mapPointForCoordinate(cellNorthLat - cellLat, cellWestLon + cellLon)
+                            ctx.fillStyle = fillStyleForIntensity(intensity, alpha)
+                            ctx.fillRect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+                        }
+                    }
+                }
+            }
         }
 
         Canvas {
@@ -2231,6 +2369,269 @@ Rectangle {
     }
 
     Popup {
+        id: vnavPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: compact ? 360 : 440
+        height: compact ? 260 : 300
+        padding: 0
+
+        background: Rectangle {
+            radius: 12
+            color: "#08111b"
+            border.color: "#355069"
+            border.width: 1
+        }
+
+        readonly property real altitudeDeltaFt: appController.selectedAltitudeFt - appController.altitudeFt
+        readonly property real distanceNm: Math.max(0.1, appController.waypointDistanceNm)
+        readonly property real requiredGradientFtNm: altitudeDeltaFt / distanceNm
+        readonly property real groundSpeedNmPerMin: Math.max(0.1, appController.groundSpeedKt / 60.0)
+        readonly property real requiredVerticalSpeedFpm: requiredGradientFtNm * groundSpeedNmPerMin
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
+
+            Text {
+                text: "VNAV Guidance"
+                color: "#f8fbff"
+                font.pixelSize: 20
+                font.bold: true
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: 18
+                rowSpacing: 10
+
+                Repeater {
+                    model: [
+                        { title: "Active Waypoint", value: appController.activeWaypointLabel || "--" },
+                        { title: "Distance", value: Number(vnavPopup.distanceNm).toFixed(1) + " NM" },
+                        { title: "Selected Alt", value: Number(appController.selectedAltitudeFt).toFixed(0) + " FT" },
+                        { title: "Current Alt", value: Number(appController.altitudeFt).toFixed(0) + " FT" },
+                        { title: "Altitude Delta", value: (vnavPopup.altitudeDeltaFt >= 0 ? "+" : "") + Number(vnavPopup.altitudeDeltaFt).toFixed(0) + " FT" },
+                        { title: "Required VS", value: (vnavPopup.requiredVerticalSpeedFpm >= 0 ? "+" : "") + Number(vnavPopup.requiredVerticalSpeedFpm).toFixed(0) + " FPM" }
+                    ]
+
+                    delegate: ColumnLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        Text {
+                            text: modelData.title
+                            color: "#95aec2"
+                            font.pixelSize: 12
+                        }
+
+                        Text {
+                            text: modelData.value
+                            color: "#f8fbff"
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                    }
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: appController.autopilotVerticalMode === "VNAV"
+                    ? "VNAV mode armed. The selected altitude and active leg are driving the guidance cue."
+                    : "VNAV mode is not active. Use the AP panel to engage VNAV."
+                color: appController.autopilotVerticalMode === "VNAV" ? "#7ef0a6" : "#f5c66e"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 13
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Button {
+                Layout.alignment: Qt.AlignRight
+                text: "Close"
+                onClicked: vnavPopup.close()
+            }
+        }
+    }
+
+    Popup {
+        id: userTimerPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: compact ? 360 : 440
+        height: compact ? 300 : 340
+        padding: 0
+
+        background: Rectangle {
+            radius: 12
+            color: "#08111b"
+            border.color: "#355069"
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
+
+            Text {
+                text: "User Timer"
+                color: "#f8fbff"
+                font.pixelSize: 20
+                font.bold: true
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: root.formatDuration(root.userTimerElapsedSeconds)
+                color: "#35d7ff"
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: compact ? 34 : 40
+                font.bold: true
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Preset reminder: " + root.userTimerPresetMinutes + " min"
+                color: root.userTimerElapsedSeconds >= root.userTimerPresetMinutes * 60 ? "#f5c66e" : "#95aec2"
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 13
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: [15, 30, 45, 60]
+
+                    delegate: Button {
+                        required property int modelData
+                        Layout.fillWidth: true
+                        text: modelData + "m"
+                        highlighted: root.userTimerPresetMinutes === modelData
+                        onClicked: root.userTimerPresetMinutes = modelData
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Button {
+                    Layout.fillWidth: true
+                    text: root.userTimerRunning ? "Pause" : "Start"
+                    onClicked: root.userTimerRunning = !root.userTimerRunning
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Reset"
+                    onClicked: {
+                        root.userTimerRunning = false
+                        root.userTimerElapsedSeconds = 0
+                    }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Button {
+                Layout.alignment: Qt.AlignRight
+                text: "Close"
+                onClicked: userTimerPopup.close()
+            }
+        }
+    }
+
+    Popup {
+        id: toolsPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: compact ? 380 : 500
+        height: compact ? 310 : 360
+        padding: 0
+
+        background: Rectangle {
+            radius: 12
+            color: "#08111b"
+            border.color: "#355069"
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
+
+            Text {
+                text: "Tools"
+                color: "#f8fbff"
+                font.pixelSize: 20
+                font.bold: true
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 10
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Refresh Charts"
+                    onClicked: chartManager.refreshPackages()
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Refresh Weather"
+                    onClicked: weatherDataManager.forceRefresh()
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Center Ownship"
+                    onClicked: root.recenterOnOwnship()
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Status"
+                    onClicked: {
+                        toolsPopup.close()
+                        statusPopup.open()
+                    }
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Charts: " + chartManager.chartStatus + "\nWeather: " + weatherDataManager.radarOverlayStatus
+                color: "#95aec2"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 12
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Button {
+                Layout.alignment: Qt.AlignRight
+                text: "Close"
+                onClicked: toolsPopup.close()
+            }
+        }
+    }
+
+    Popup {
         id: menuPopup
         modal: true
         focus: true
@@ -2313,9 +2714,18 @@ Rectangle {
                             } else if (modelData.key === "status") {
                                 menuPopup.close()
                                 statusPopup.open()
+                            } else if (modelData.key === "vnav") {
+                                menuPopup.close()
+                                vnavPopup.open()
+                            } else if (modelData.key === "user_timer") {
+                                menuPopup.close()
+                                userTimerPopup.open()
+                            } else if (modelData.key === "tools") {
+                                menuPopup.close()
+                                toolsPopup.open()
                             } else {
                                 infoPopup.titleText = modelData.title
-                                infoPopup.bodyText = modelData.title + " is scaffolded for the next implementation pass."
+                                infoPopup.bodyText = modelData.title + " is not available in this build."
                                 menuPopup.close()
                                 infoPopup.open()
                             }

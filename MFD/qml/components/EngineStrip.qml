@@ -313,6 +313,7 @@ Rectangle {
             }
 
             Row {
+                id: groupValueRow
                 width: parent.width
                 height: root.compact ? 56 : 66
                 spacing: 5
@@ -323,7 +324,7 @@ Rectangle {
                     delegate: Item {
                         required property real modelData
 
-                        width: (parent.width - (group.values.length - 1) * parent.spacing) / group.values.length
+                        width: (groupValueRow.width - (group.values.length - 1) * groupValueRow.spacing) / group.values.length
                         height: parent.height
 
                         Rectangle {
