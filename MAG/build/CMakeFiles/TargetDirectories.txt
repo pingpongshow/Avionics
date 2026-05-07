@@ -1,0 +1,3 @@
+/Users/stephen/Desktop/PFD/MAG/build/CMakeFiles/mag_core_demo.dir
+/Users/stephen/Desktop/PFD/MAG/build/CMakeFiles/edit_cache.dir
+/Users/stephen/Desktop/PFD/MAG/build/CMakeFiles/rebuild_cache.dir
